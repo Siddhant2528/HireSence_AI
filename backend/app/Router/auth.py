@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from app.Core.db import get_db
 from app.Models.Users import User
 from app.Schema.login import LoginSchema
+from app.Schema.Register import RegisterSchema
 
 
 router=APIRouter()
@@ -30,3 +31,40 @@ def login(data: LoginSchema, db: Session = Depends(get_db)):
         }
     }
 
+
+@router.post("/register")
+def register(data: RegisterSchema, db: Session = Depends(get_db)):
+
+    # Check if email already exists
+    email_exists = db.query(User).filter(User.email == data.email).first()
+
+    if email_exists:
+        return {"message": "Email already exists"}
+
+    # Check if username already exists
+    username_exists = db.query(User).filter(User.username == data.username).first()
+
+    if username_exists:
+        return {"message": "Username already exists"}
+
+    # Create new user
+    new_user = User(
+        name=data.name,
+        username=data.username,
+        email=data.email,
+        password=data.password
+    )
+
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+
+    return {
+        "message": "User Registered Successfully",
+        "user": {
+            "id": new_user.id,
+            "name": new_user.name,
+            "username": new_user.username,
+            "email": new_user.email
+        }
+    }
